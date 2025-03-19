@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import userModel from "../models/user.model";
+import userModel from "../models/user.model.js";
+import transporter from "../config/nodemailer.js";
 
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
@@ -39,13 +40,23 @@ export const register = async (req, res) => {
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+    // sending welcome email to the new users
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: email, // list of receivers
+      subject: "Welcom Email", // Subject line
+      text: `Hello ${name}, Welcome to MERN Auth, You signed up with email ${email}.`, // plain text body
+      // html: "<b>Hello world?</b>", // html body
+    };
+    await transporter.sendMail(mailOptions);
+
+    return res.json({
+      success: true,
+    });
   } catch (error) {
     res.json({
       success: false,
       message: error.message,
-    });
-    return res.json({
-      success: true,
     });
   }
 };
@@ -63,13 +74,13 @@ export const login = async (req, res) => {
   try {
     const user = await userModel.findOne({ email });
     if (!user) {
-      return res.json({ success: false, message: "invalid email" });
+      return res.json({ success: false, message: "Invalid Email" });
     }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.json({ success: false, message: "invalid password" });
-    }
+    const isMatch = await bcrypt.compare(password, user.password || " ");
 
+    if (!isMatch) {
+      return res.json({ success: false, message: "Invalid Password" });
+    }
     // generate token to auth and login
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -81,14 +92,13 @@ export const login = async (req, res) => {
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+    return res.json({
+      success: true,
+    });
   } catch (error) {
     return res.json({
       success: false,
       message: error.message,
-    });
-
-    return res.json({
-      success: true,
     });
   }
 };
@@ -101,5 +111,10 @@ export const logout = async (req, res) => {
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
     return res.json({ success: true, message: "logged out" });
-  } catch (error) {}
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
