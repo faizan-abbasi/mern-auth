@@ -6,13 +6,13 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
 const EmailVerify = () => {
-  const inputRefs = React.useRef([]);
-
   const navigate = useNavigate();
 
   axios.defaults.withCredentials = true;
   const { backendUrl, isLoggedIn, userData, getUserData } =
     useContext(AppContext);
+
+  const inputRefs = React.useRef([]);
   // Focus the input when a number is entered
   const handleInput = (e, index) => {
     const value = e.target.value;
